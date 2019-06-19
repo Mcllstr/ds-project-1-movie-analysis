@@ -80,11 +80,21 @@ for index, element in enumerate(the_df['roi']):
     if (element < -0.9999999) & (element > -1.01):
         the_df['roi'][index] = np.nan
 
+# Drop all NaN values
+print('1: ',the_df.shape)
+the_df.dropna(inplace=True)
+print('2: ',the_df.shape)
 
 
 
 
 
-
-
-
+        
+median_genres = the_df.groupby('genres').roi.median().sort_values(ascending = False)
+count_genres = the_df.groupby('genres').roi.count().sort_values(ascending = False)
+count_df = pd.DataFrame(count_genres)
+median_df = pd.DataFrame(median_genres)
+joined_genre_df = median_df.join(count_df, how='inner', lsuffix='median', rsuffix='count')
+joined_genre_df.sort_values(by='roicount', ascending=False)
+genre_keepers = joined_genre_df[joined_genre_df['roicount'] >= 10]
+print(genre_keepers.head())
