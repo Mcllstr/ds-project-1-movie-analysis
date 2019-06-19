@@ -22,19 +22,35 @@ sns.set()
 tn_movie_budgets_df = pd.read_csv('tn.movie_budgets.csv.gz')
 imdb_title_basics_df = pd.read_csv('imdb.title.basics.csv.gz')
 
+
 # Check out tn_movie_budgets_df
 tn_movie_budgets_df.head()
 
-# Convert gross and production columns in tn_movie_budgets_df from str to int
-gross = pd.to_numeric(tn_movie_budgets_df.worldwide_gross.str.replace('$','')).replace(',','')
-budget = pd.to_numeric(tn_movie_budgets_df.production_budget.str.replace('$','').str.replace(',',''))
 
+'''!!!!!!!!'''
+# Joe, I think this block is what Sean is turning into a function
+# Will take a series with strings + dollar signs and return a 
+# series of integers.
+
+# Convert gross and production columns in tn_movie_budgets_df from str to int
+gross_without_dSign = tn_movie_budgets_df.worldwide_gross.str.replace('$','')
+gross_without_comma = gross_without_dSign.str.replace(',', '')
+gross = pd.to_numeric(gross_without_comma)
+
+budget_without_dsign_and_comma = tn_movie_budgets_df.production_budget.str.replace('$','').str.replace(',','')
+budget = pd.to_numeric(budget_without_dsign_and_comma)
+'''!!!!!!!!!'''
+# END Of FUNCTION 1. I AM GUESSING.
+
+
+# Reassigning the columns in the data frame
 tn_movie_budgets_df['worldwide_gross'] = gross
 tn_movie_budgets_df['production_budget'] = budget
 
+
+
 # Calculate and create an return on investment (ROI) column
 roi = (gross - budget)/budget
-
 tn_movie_budgets_df['roi'] = roi
 
 
@@ -43,9 +59,27 @@ tn_movie_budgets_df['roi'] = roi
 
 # NOTE FOR TEAMMATES: The backslash here allows you to break up the line\
 # when it gets too long, which is something I just learned
-mask = (pd.to_datetime(tn_movie_budgets.release_date) >= '2010-01-01') & (pd.to_datetime(tn_movie_budgets.release_date) < '2019-01-01')
+mask = (pd.to_datetime(tn_movie_budgets_df.release_date) >= '2010-01-01') & \
+		(pd.to_datetime(tn_movie_budgets_df.release_date) < '2019-01-01')
 
 tn_movie_budgets_to_date = tn_movie_budgets_df[mask]
+
+# Looking at our second data frame
+print(imdb_title_basics_df.columns)
+
+# Join data frames on movie titles
+
+# I don't know how to do this without setting the index to the
+# columns you want to merge on. Adding the paramter on = ['col1', 'col2']
+# gives me errors, but this way works.
+tn_movie_budgets_to_date.index = tn_movie_budgets_to_date['movie']
+imdb_title_basics_df.index = imdb_title_basics_df['primary_title']
+
+tn_movie_budgets_to_date.join(imdb_title_basics_df, how ='inner')
+
+print(tn_movie_budgets_to_date.columns)
+
+
 
 
 
