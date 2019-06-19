@@ -80,6 +80,12 @@ for index, element in enumerate(the_df['roi']):
     if (element < -0.9999999) & (element > -1.01):
         the_df['roi'][index] = np.nan
 
+# Drop all NaN values
+print('1: ',the_df.shape)
+the_df.dropna(inplace=True)
+print('2: ',the_df.shape)
+
+
 
 
 
