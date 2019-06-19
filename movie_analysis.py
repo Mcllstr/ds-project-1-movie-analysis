@@ -64,8 +64,6 @@ mask = (pd.to_datetime(tn_movie_budgets_df.release_date) >= '2010-01-01') & \
 
 tn_movie_budgets_to_date = tn_movie_budgets_df[mask]
 
-# Looking at our second data frame
-print(imdb_title_basics_df.columns)
 
 # Join data frames on movie titles
 
@@ -75,9 +73,14 @@ print(imdb_title_basics_df.columns)
 tn_movie_budgets_to_date.index = tn_movie_budgets_to_date['movie']
 imdb_title_basics_df.index = imdb_title_basics_df['primary_title']
 
-tn_movie_budgets_to_date.join(imdb_title_basics_df, how ='inner')
+the_df = tn_movie_budgets_to_date.join(imdb_title_basics_df, how ='inner')
 
-print(tn_movie_budgets_to_date.columns)
+# filling in missing roi data
+for index, element in enumerate(the_df['roi']):
+    if (element < -0.9999999) & (element > -1.01):
+        the_df['roi'][index] = np.nan
+
+
 
 
 
