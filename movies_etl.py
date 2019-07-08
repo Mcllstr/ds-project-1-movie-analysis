@@ -19,7 +19,7 @@ budgeted_movies = raw_movie_budgets.copy()
 genred_movies = raw_title_basics.copy()
 
 # Clean budgeted_movies:
-#           convert type, where appropriate: string --> integer
+#           convert type, where appropriate: string (with $xxx,xxx) --> integer
 #           rename columns where helpful
 #           create new features: ROI and foreign gross
 #           remove movies with zero revenue (assumed to be missing dates)
@@ -123,7 +123,8 @@ movies_df = good_sample_df2.copy()  # Now the dataframe is ready
 # Joe's edits
 # Similar date filter for df_movie_budgets for the roi/budget/profit scatterplot,
 # built on same code, copy df created to avoid conflict if variable names changed
-date_mask = (pd.to_datetime(raw_movie_budgets.release_date) >= '2010-01-01') & (pd.to_datetime(raw_movie_budgets.release_date) < '2019-01-01')
+date_mask = (pd.to_datetime(raw_movie_budgets.release_date) >= '2010-01-01') & \
+            (pd.to_datetime(raw_movie_budgets.release_date) < '2019-01-01')
 df_movie_budgets_clip = raw_movie_budgets[date_mask]
 
 # df_movie_budgets_clip['worldwide_gross_numeric']
@@ -132,25 +133,25 @@ df_movie_budgets_clip = raw_movie_budgets[date_mask]
 #  = pd.to_numeric(df_movie_budgets_clip.production_budget.str.replace('$','').str.replace(',',''))
 df_movie_budgets_clip['profit'] = df_movie_budgets_clip['worldwide_gross'] - df_movie_budgets_clip['production_budget']
 
-df_movie_budgets_clip.rename({'id': 'movie'}, inplace = True)
+df_movie_budgets_clip.rename({'id': 'movie'}, inplace=True)
 
 df_movie_budgets_clip['roi'] = df_movie_budgets_clip['profit']/df_movie_budgets_clip['production_budget']
-df_movie_budgets_clip.join(raw_name_basics, how ='inner')
+df_movie_budgets_clip.join(raw_name_basics, how='inner')
 df_movie_budgets_clip.set_index('movie', inplace=True)
 df_movie_budgets_clip['roi'].sort_values(ascending=False)
-genred_movies.set_index('primary_title', inplace = True)
+genred_movies.set_index('primary_title', inplace=True)
 
 # Create the_df which is where ROI/Budget/Profit pulls from
-a_df = df_movie_budgets_clip.join(genred_movies, how ='inner')
+a_df = df_movie_budgets_clip.join(genred_movies, how='inner')
 a_df = a_df.loc[~a_df.index.duplicated(keep='first')]
 
 # Create subdataframes for ROI/Budget/Profit plot
 #    (plot dataframe is gross_roi_max_df) and then combines them into gross_roi_max_df
-top_5_budget = a_df.sort_values(by='production_budget', ascending=False, axis=0).iloc[:10,:]
+top_5_budget = a_df.sort_values(by='production_budget', ascending=False, axis=0).iloc[:10, :]
 top_5_budget['top_X_parameter'] = 'production_budget'
-top_5_profit = a_df.sort_values(by='profit', ascending = False, axis = 0).iloc[:10,:]
+top_5_profit = a_df.sort_values(by='profit', ascending=False, axis=0).iloc[:10, :]
 top_5_profit['top_X_parameter'] = 'gross'
-top_5_roi = a_df.sort_values(by='roi', ascending = False, axis = 0).iloc[:10,:]
+top_5_roi = a_df.sort_values(by='roi', ascending=False, axis=0).iloc[:10, :]
 top_5_roi['top_X_parameter'] = 'roi'
 
 # Stack the dataframes
@@ -160,27 +161,27 @@ gross_roi_max_df = gross_roi_max_df.reset_index()
 
 # Creating indicator column for films that made money vs those that did not - will use for hue parameter in plot below
 gross_roi_max_df['made_a_profit'] = 1
-for row in range(0,gross_roi_max_df.shape[0]):
+for row in range(0, gross_roi_max_df.shape[0]):
     if gross_roi_max_df.profit[row] > 0:
         gross_roi_max_df.made_a_profit[row] = 1
     else:
         gross_roi_max_df.made_a_profit[row] = 0
 # rename column 'index' as title
-gross_roi_max_df.rename(columns={'index':'title'}, inplace=True)
+gross_roi_max_df.rename(columns={'index': 'title'}, inplace=True)
 
 # First, finding benefit
 benefit = genre_df.groupby('genres').median()['roi'] 
 
 # Now finding risk
-total_genre_count = genre_df['genres'].value_counts() # Good
-total_genre_count_and_one = total_genre_count + 1 # Good
+total_genre_count = genre_df['genres'].value_counts()  # Good
+total_genre_count_and_one = total_genre_count + 1  # Good
 # Adding 1 to avoid divsion by zero (incase a certain genre did not lose money)
 # Action,Adventure,Sci-Fi and Action,Adventure,Thriller have no failed profits. Scaling all movies up by 1.
-failed_in_genre_count = genre_df[genre_df['roi']<0].groupby('genres').count()['roi'] + 1
+failed_in_genre_count = genre_df[genre_df['roi'] < 0].groupby('genres').count()['roi'] + 1
 failed_in_genre_count['Action,Adventure,Sci-Fi'] = 1
 failed_in_genre_count['Action,Adventure,Thriller'] = 1
 
-risk = np.array(failed_in_genre_count)/np.array(total_genre_count_and_one )
+risk = np.array(failed_in_genre_count)/np.array(total_genre_count_and_one)
 
 # now we have our Benefit-to-risk ratio
 b2r = benefit/risk
@@ -189,30 +190,30 @@ b2r = benefit/risk
 median_roi = movies_df.groupby('genres').median()['roi'].to_frame()
 median_roi.columns = ['median_roi']
 # Now count the number of losers in each genre, if zero won't have a row for that genre
-losers = movies_df[movies_df['roi']<0].groupby('genres').count()['roi'].to_frame()
+losers = movies_df[movies_df['roi'] < 0].groupby('genres').count()['roi'].to_frame()
 losers.columns = ['losers']
 total = movies_df.groupby('genres').count()['roi'].to_frame()
 total.columns = ['total']
-genres_df = median_roi.join(total, how = 'outer').join(losers, how='left').fillna(0)
+genres_df = median_roi.join(total, how='outer').join(losers, how='left').fillna(0)
 # Now find the adjusted risk (losers + 1)/(total + 1) and BtoR
 genres_df['adjusted_risk'] = (genres_df.losers + 1)/(genres_df.total + 1)
 genres_df['BtoR'] = genres_df.median_roi/genres_df.adjusted_risk
 genres_df.sort_values('BtoR', ascending=False)
 
 # Get genres with small sample sizes
-genres_to_drop = genres_df[genres_df['total']<10]
+genres_to_drop = genres_df[genres_df['total'] < 10]
 
 
 # Drop movies from genres with small samples
 bigsample_movies = movies_df.copy()
 bigsample_movies['title'] = bigsample_movies.index
-bigsample_movies.set_index('genres', inplace=True, drop = False)
+bigsample_movies.set_index('genres', inplace=True, drop=False)
 bigsample_movies.drop(genres_to_drop.index, axis=0, inplace=True)
 bigsample_movies.set_index('title', inplace=True)
 # Drop genres with small samples
 bigsample_genres = genres_df.copy()
 bigsample_genres.drop(genres_to_drop.index, inplace=True)
-#rank the genres by BtoR
+# rank the genres by BtoR
 ranked_genres = list(bigsample_genres.sort_values('BtoR', ascending=False).index)
 
 # Get a list of top 5 genres
@@ -228,7 +229,7 @@ top5_df = bigsample_movies.iloc[i_top, :]
 
 # Preparing to plot roi vs budget by genre
 horror_df = movies_df[movies_df['genres'] == 'Horror,Mystery,Thriller']
-#Action,Adventure,Sci-Fi = AASF 
+# Action,Adventure,Sci-Fi = AASF
 AASF_df = movies_df[movies_df['genres'] == 'Action,Adventure,Sci-Fi']
 # Adventure,Animation,Comedy = AAC
 AAC_df = movies_df[movies_df['genres'] == 'Adventure,Animation,Comedy']
@@ -236,29 +237,3 @@ AAC_df = movies_df[movies_df['genres'] == 'Adventure,Animation,Comedy']
 CR_df = movies_df[movies_df['genres'] == 'Comedy,Romance']
 # Comedy,Drama,Romance
 CDR_df = movies_df[movies_df['genres'] == 'Comedy,Drama,Romance']
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
